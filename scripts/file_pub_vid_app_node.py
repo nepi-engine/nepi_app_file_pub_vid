@@ -31,6 +31,7 @@ import random
 
 
 from nepi_sdk import nepi_ros
+from nepi_sdk import nepi_utils
 from nepi_sdk import nepi_img
 
 
@@ -45,7 +46,7 @@ from std_msgs.msg import UInt8, Int32, Float32, Empty, String, Bool, Header
 
 from sensor_msgs.msg import Image
 
-from nepi_sdk.save_cfg_if import SaveCfgIF
+from nepi_api.sys_if_save_cfg import SaveCfgIF
 
 
 
@@ -102,22 +103,17 @@ class NepiFilePubVidApp(object):
     nepi_msg.createMsgPublishers(self)
     nepi_msg.publishMsgInfo(self,"Starting Initialization Processes")
     ##############################
-    
+    # Init Param Server
+    self.initCb(do_updates = False)
 
     ## App Setup ########################################################
-    self.initParamServerValues(do_updates=False)
 
-    self.save_cfg_if = SaveCfgIF(updateParamsCallback=self.initParamServerValues, 
-                                 paramsModifiedCallback=self.updateFromParamServer)
+
 
     # Create class publishers
     self.status_pub = rospy.Publisher("~status", FilePubVidStatus, queue_size=1, latch=True)
 
-    # Start updater process
-    rospy.Timer(rospy.Duration(self.UPDATER_DELAY_SEC), self.updaterCb)
-
     # General Class Subscribers
-    rospy.Subscriber('~reset_app', Empty, self.resetAppCb, queue_size = 10)
     rospy.Subscriber('~select_folder', String, self.selectFolderCb)
     rospy.Subscriber('~home_folder', Empty, self.homeFolderCb)
     rospy.Subscriber('~back_folder', Empty, self.backFolderCb)
@@ -132,9 +128,22 @@ class NepiFilePubVidApp(object):
 
     rospy.Subscriber('~pause_pub', Bool, self.pausePubCb)
     rospy.Subscriber('~step_forward', Empty, self.stepForwardPubCb)
-
-
     time.sleep(1)
+
+    self.save_cfg_if = SaveCfgIF(initCb=self.initCb, resetCb=self.resetCb,  factoryResetCb=self.factoryResetCb)
+    ready = self.save_cfg_if.wait_for_ready()
+
+    ##############################
+    self.initCb(do_updates = True)
+
+
+    ##############################
+
+    # Start updater process
+    rospy.Timer(rospy.Duration(self.UPDATER_DELAY_SEC), self.updaterCb)
+
+
+    ##############################
     ## Initiation Complete
     nepi_msg.publishMsgInfo(self," Initialization Complete")
     self.publish_status()
@@ -147,10 +156,7 @@ class NepiFilePubVidApp(object):
   #######################
   ### App Config Functions
 
-  def resetAppCb(self,msg):
-    self.resetApp()
-
-  def resetApp(self):
+  def factoryResetCb(self):
     rospy.set_param('~current_folder', self.HOME_FOLDER)
 
     rospy.set_param('~size',self.FACTORY_IMG_SIZE)
@@ -163,19 +169,9 @@ class NepiFilePubVidApp(object):
 
     self.publish_status()
 
-  def saveConfigCb(self, msg):  # Just update Class init values. Saving done by Config IF system
-    pass # Left empty for sim, Should update from param server
 
-  def setCurrentAsDefault(self):
-    self.initParamServerValues(do_updates = False)
 
-  def updateFromParamServer(self):
-    #nepi_msg.publishMsgWarn(self,"Debugging: param_dict = " + str(param_dict))
-    #Run any functions that need updating on value change
-    # Don't need to run any additional functions
-    pass
-
-  def initParamServerValues(self,do_updates = True):
+  def initCb(self,do_updates = False):
     self.init_current_folder = rospy.get_param('~current_folder', self.HOME_FOLDER)
 
     self.init_size = rospy.get_param('~size',self.FACTORY_IMG_SIZE)
@@ -184,10 +180,10 @@ class NepiFilePubVidApp(object):
     self.init_random = rospy.get_param('~random',False)
     self.init_overlay = rospy.get_param('~overlay',False)
     self.init_running = rospy.get_param('~running', False)
+    if do_updates == True:
+      self.resetCb(do_updates)
 
-    self.resetParamServer(do_updates)
-
-  def resetParamServer(self,do_updates = True):
+  def resetCb(self,do_updates = True):
     rospy.set_param('~current_folder', self.init_current_folder)
 
     rospy.set_param('~size',self.init_size)
@@ -196,10 +192,7 @@ class NepiFilePubVidApp(object):
     rospy.set_param('~random',self.init_random)
     rospy.set_param('~overlay',  self.init_overlay)
     rospy.set_param('~running',self.init_running)
-
-    if do_updates:
-      self.updateFromParamServer()
-      self.publish_status()
+    self.publish_status()
 
   ###################
   ## Status Publisher
@@ -248,7 +241,7 @@ class NepiFilePubVidApp(object):
       update_status = True
       if os.path.exists(current_folder):
         #nepi_msg.publishMsgWarn(self,"Current Folder Exists")
-        current_paths = nepi_ros.get_folder_list(current_folder)
+        current_paths = nepi_utils.get_folder_list(current_folder)
         current_folders = []
         for path in current_paths:
           folder = os.path.basename(path)
@@ -258,7 +251,7 @@ class NepiFilePubVidApp(object):
         #nepi_msg.publishMsgWarn(self,"Folders: " + str(self.current_folders))
         num_files = 0
         for f_type in self.SUPPORTED_FILE_TYPES:
-          num_files = num_files + nepi_ros.get_file_count(current_folder,f_type)
+          num_files = num_files + nepi_utils.get_file_count(current_folder,f_type)
         self.file_count =  num_files
       self.last_folder = current_folder
     # Start publishing if needed
@@ -359,7 +352,7 @@ class NepiFilePubVidApp(object):
       self.num_files = 0
       if os.path.exists(current_folder):
         for f_type in self.SUPPORTED_FILE_TYPES:
-          [file_list, num_files] = nepi_ros.get_file_list(current_folder,f_type)
+          [file_list, num_files] = nepi_utils.get_file_list(current_folder,f_type)
           self.file_list.extend(file_list)
           self.num_files += num_files
           #nepi_msg.publishMsgWarn(self,"File Pub List: " + str(self.file_list))
