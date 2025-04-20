@@ -20,7 +20,7 @@ import os
 # ROS namespace setup
 NEPI_BASE_NAMESPACE = '/nepi/s2x/'
 os.environ["ROS_NAMESPACE"] = NEPI_BASE_NAMESPACE[0:-1] # remove to run as automation script
-import rospy
+
 import time
 import sys
 import numpy as np
@@ -115,32 +115,166 @@ class NepiFilePubVidApp(object):
     # Init Param Server
     self.initCb(do_updates = False)
 
-    ## App Setup ########################################################
+    ##############################
+    ### Setup Node
+
+    # Configs Config Dict ####################
+    self.CFGS_DICT = {
+            'init_callback': self.initCb,
+            'reset_callback': self.resetCb,
+            'factory_reset_callback': self.factoryResetCb,
+            'init_configs': True,
+            'namespace': self.node_namespace
+    }
+
+    # Params Config Dict ####################
+    self.PARAMS_DICT = {
+        'current_folder': {
+            'namespace': self.node_namespace,
+            'factory_val': self.FACTORY_IMG_SIZE
+        },
+        'size': {
+            'namespace': self.node_namespace,
+            'factory_val': self.FACTORY_IMG_ENCODING_OPTION
+        },
+        'encoding': {
+            'namespace': self.node_namespace,
+            'factory_val': self.FACTORY_ALT_FRAME
+        },
+        'random': {
+            'namespace': self.node_namespace,
+            'factory_val': False
+        },
+        'overaly': {
+            'namespace': self.node_namespace,
+            'factory_val': False
+        },
+        'running': {
+            'namespace': self.node_namespace,
+            'factory_val': False
+        }
+    }
+
+    # Publishers Config Dict ####################
+    self.PUBS_DICT = {
+        'navpose_pub': {
+            'namespace': self.node_namespace,
+            'topic': 'navpose',
+            'msg': NavPoseData,
+            'qsize': 1,
+            'latch': True
+        }
+    }
+
+    # Subscribers Config Dict ####################
+    self.SUBS_DICT = {
+        'select_folder': {
+            'namespace': self.node_namespace,
+            'topic': 'select_folder',
+            'msg': String,
+            'qsize': None,
+            'callback': self.selectFolderCb, 
+            'callback_args': ()
+        },
+        'home_folder': {
+            'namespace': self.node_namespace,
+            'topic': 'home_folder',
+            'msg': Empty,
+            'qsize': None,
+            'callback': self.homeFolderCb, 
+            'callback_args': ()
+        },
+        'back_folder': {
+            'namespace': self.node_namespace,
+            'topic': 'back_folder',
+            'msg': Empty,
+            'qsize': None,
+            'callback': self.backFolderCb, 
+            'callback_args': ()
+        },
+        'set_size': {
+            'namespace': self.node_namespace,
+            'topic': 'set_size',
+            'msg': String,
+            'qsize': None,
+            'callback': self.setSizeCb, 
+            'callback_args': ()
+        },
+        'set_encoding': {
+            'namespace': self.node_namespace,
+            'topic': 'set_encoding',
+            'msg': String,
+            'qsize': None,
+            'callback': self.setEncodingCb, 
+            'callback_args': ()
+        },
+        'set_random': {
+            'namespace': self.node_namespace,
+            'topic': 'set_random',
+            'msg': Bool,
+            'qsize': None,
+            'callback': self.setRandomCb, 
+            'callback_args': ()
+        },
+        'set_overlay': {
+            'namespace': self.node_namespace,
+            'topic': 'set_overlay',
+            'msg': Bool,
+            'qsize': None,
+            'callback': self.setOverlayCb, 
+            'callback_args': ()
+        },
+        'start_pub': {
+            'namespace': self.node_namespace,
+            'topic': 'start_pub',
+            'msg': Empty,
+            'qsize': None,
+            'callback': self.startPubCb, 
+            'callback_args': ()
+        },
+        'stop_pub': {
+            'namespace': self.node_namespace,
+            'topic': 'stop_pub',
+            'msg': Empty,
+            'qsize': None,
+            'callback': self.stopPubCb, 
+            'callback_args': ()
+        },
+        'pause_pub': {
+            'namespace': self.node_namespace,
+            'topic': 'pause_pub',
+            'msg': Bool,
+            'qsize': None,
+            'callback': self.pausePubCb, 
+            'callback_args': ()
+        },
+        'step_forward': {
+            'namespace': self.node_namespace,
+            'topic': 'step_forward',
+            'msg': Empty,
+            'qsize': None,
+            'callback': self.stepForwardPubCb, 
+            'callback_args': ()
+        }
+    }
+
+
+    # Create Node Class ####################
+    self.node_if = NodeClassIF(self,
+                    configs_dict = self.CFGS_DICT,
+                    params_dict = self.PARAMS_DICT,
+                    pubs_dict = self.PUBS_DICT,
+                    subs_dict = self.SUBS_DICT,
+                    log_class_name = True
+    )
+
+    ready = self.node_if.wait_for_ready()
 
 
 
     # Create class publishers
-    self.status_pub = rospy.Publisher("~status", FilePubVidStatus, queue_size=1, latch=True)
+    self.status_pub = self.nepi_ros.create_publisher("~status", FilePubVidStatus, queue_size=1, latch=True)
 
-    # General Class Subscribers
-    rospy.Subscriber('~select_folder', String, self.selectFolderCb)
-    rospy.Subscriber('~home_folder', Empty, self.homeFolderCb)
-    rospy.Subscriber('~back_folder', Empty, self.backFolderCb)
-
-    # Image Pub Scubscirbers and publishers
-    rospy.Subscriber('~set_size', String, self.setSizeCb)
-    rospy.Subscriber('~set_encoding', String, self.setEncodingCb)
-    rospy.Subscriber('~set_random', Bool, self.setRandomCb)
-    rospy.Subscriber('~set_overlay', Bool, self.setOverlayCb) 
-    rospy.Subscriber('~start_pub', Empty, self.startPubCb)
-    rospy.Subscriber('~stop_pub', Empty, self.stopPubCb)
-
-    rospy.Subscriber('~pause_pub', Bool, self.pausePubCb)
-    rospy.Subscriber('~step_forward', Empty, self.stepForwardPubCb)
-    time.sleep(1)
-
-    self.save_cfg_if = SaveCfgIF(initCb=self.initCb, resetCb=self.resetCb,  factoryResetCb=self.factoryResetCb)
-    ready = self.save_cfg_if.wait_for_ready()
 
     ##############################
     self.initCb(do_updates = True)
@@ -149,7 +283,7 @@ class NepiFilePubVidApp(object):
     ##############################
 
     # Start updater process
-    rospy.Timer(rospy.Duration(self.UPDATER_DELAY_SEC), self.updaterCb)
+    self.nepi_ros.start_timer_process(self.UPDATER_DELAY_SEC, self.updaterCb)
 
 
     ##############################
@@ -157,7 +291,7 @@ class NepiFilePubVidApp(object):
     self.msg_if.pub_info(" Initialization Complete")
     self.publish_status()
     # Spin forever (until object is detected)
-    rospy.spin()
+    self.nepi_ros.spin()
 
 
 
@@ -166,41 +300,15 @@ class NepiFilePubVidApp(object):
   ### App Config Functions
 
   def factoryResetCb(self):
-    rospy.set_param('~current_folder', self.HOME_FOLDER)
-
-    rospy.set_param('~size',self.FACTORY_IMG_SIZE)
-    rospy.set_param('~encoding',self.FACTORY_IMG_ENCODING_OPTION)
-
-    rospy.set_param('~random',False)
-    rospy.set_param('~overaly',False)
-
-    rospy.set_param('~running', False)
-
     self.publish_status()
 
 
 
   def initCb(self,do_updates = False):
-    self.init_current_folder = rospy.get_param('~current_folder', self.HOME_FOLDER)
-
-    self.init_size = rospy.get_param('~size',self.FACTORY_IMG_SIZE)
-    self.init_encoding = rospy.get_param('~encoding',self.FACTORY_IMG_ENCODING_OPTION)
-
-    self.init_random = rospy.get_param('~random',False)
-    self.init_overlay = rospy.get_param('~overlay',False)
-    self.init_running = rospy.get_param('~running', False)
     if do_updates == True:
       self.resetCb(do_updates)
 
   def resetCb(self,do_updates = True):
-    rospy.set_param('~current_folder', self.init_current_folder)
-
-    rospy.set_param('~size',self.init_size)
-    rospy.set_param('~encoding',self.init_encoding)
-
-    rospy.set_param('~random',self.init_random)
-    rospy.set_param('~overlay',  self.init_overlay)
-    rospy.set_param('~running',self.init_running)
     self.publish_status()
 
   ###################
@@ -209,7 +317,7 @@ class NepiFilePubVidApp(object):
     status_msg = FilePubVidStatus()
 
     status_msg.home_folder = self.HOME_FOLDER
-    current_folder = rospy.get_param('~current_folder', self.init_current_folder)
+    current_folder = self.node_if.get_param('current_folder')
     status_msg.current_folder = current_folder
     if current_folder == self.HOME_FOLDER:
       selected_folder = 'Home'
@@ -225,15 +333,15 @@ class NepiFilePubVidApp(object):
     status_msg.paused = self.paused
 
     status_msg.size_options_list = self.STANDARD_IMAGE_SIZES
-    status_msg.set_size = rospy.get_param('~size',self.init_size)
+    status_msg.set_size = self.node_if.get_param('size')
     status_msg.encoding_options_list = self.IMG_PUB_ENCODING_OPTIONS
-    status_msg.set_encoding = rospy.get_param('~encoding',self.init_encoding)
-    status_msg.set_random = rospy.get_param('~random',self.init_random)
-    status_msg.set_overlay = rospy.get_param('~overlay',  self.init_overlay)
+    status_msg.set_encoding = self.node_if.get_param('encoding')
+    status_msg.set_random = self.node_if.get_param('random')
+    status_msg.set_overlay = self.node_if.get_param('overlay')
 
-    status_msg.running = rospy.get_param('~running',self.init_running)
+    status_msg.running = self.node_if.get_param('running')
 
-    self.status_pub.publish(status_msg)
+    self.node_if.publish_pub('status_pub', status_msg)
 
 
   #############################
@@ -242,7 +350,7 @@ class NepiFilePubVidApp(object):
   def updaterCb(self,timer):
     update_status = False
     # Get settings from param server
-    current_folder = rospy.get_param('~current_folder', self.init_current_folder)
+    current_folder = self.node_if.get_param('current_folder')
     #self.msg_if.pub_warn("Current Folder: " + str(current_folder))
     #self.msg_if.pub_warn("Last Folder: " + str(self.last_folder))
     # Update folder info
@@ -264,7 +372,7 @@ class NepiFilePubVidApp(object):
         self.file_count =  num_files
       self.last_folder = current_folder
     # Start publishing if needed
-    running = rospy.get_param('~running',self.init_running)
+    running = self.node_if.get_param('running')
     if running and self.pub_pub == None:
       self.startPub()
       update_status = True
@@ -273,26 +381,26 @@ class NepiFilePubVidApp(object):
       self.publish_status()
 
   def selectFolderCb(self,msg):
-    current_folder = rospy.get_param('~current_folder',self.init_current_folder)
+    current_folder = self.node_if.get_param('current_folder')
     new_folder = msg.data
     new_path = os.path.join(current_folder,new_folder)
     if os.path.exists(new_path):
       self.last_folder = current_folder
-      rospy.set_param('~current_folder',new_path)
+      self.node_if.set_param('current_folder',new_path)
     self.publish_status()
 
 
   def homeFolderCb(self,msg):
-    rospy.set_param('~current_folder',self.HOME_FOLDER)
+    self.node_if.set_param('current_folder',self.HOME_FOLDER)
     self.publish_status()
 
   def backFolderCb(self,msg):
-    current_folder = rospy.get_param('~current_folder',self.init_current_folder)
+    current_folder = self.node_if.get_param('current_folder')
     if current_folder != self.HOME_FOLDER:
       new_folder = os.path.dirname(current_folder )
       if os.path.exists(new_folder):
         self.last_folder = current_folder
-        rospy.set_param('~current_folder',new_folder)
+        self.node_if.set_param('current_folder',new_folder)
     self.publish_status()
 
 
@@ -324,7 +432,7 @@ class NepiFilePubVidApp(object):
 
     if success:
       if h >= self.MIN_SIZE and h <= self.MAX_SIZE and w >= self.MIN_SIZE and w <= self.MAX_SIZE:
-        rospy.set_param('~size',new_size)
+        self.node_if.set_param('size',new_size)
         self.width = w
         self.height = h
       else:
@@ -334,18 +442,18 @@ class NepiFilePubVidApp(object):
   def setEncodingCb(self,msg):
     new_encoding = msg.data
     if new_encoding in self.IMG_PUB_ENCODING_OPTIONS:
-      rospy.set_param('~encoding',new_encoding)
+      self.node_if.set_param('encoding',new_encoding)
     self.publish_status()
 
   def setRandomCb(self,msg):
     ##self.msg_if.pub_info(msg)
-    rospy.set_param('~random',msg.data)
+    self.node_if.set_param('random',msg.data)
     self.publish_status()
 
   def setOverlayCb(self,msg):
       ##self.msg_if.pub_info(msg)
       overlay = msg.data
-      rospy.set_param('~overlay',overlay)
+      self.node_if.set_param('overlay',overlay)
       self.publish_status()
 
   def startPubCb(self,msg):
@@ -353,9 +461,9 @@ class NepiFilePubVidApp(object):
 
   def startPub(self):
     if self.pub_pub == None:
-      self.pub_pub = rospy.Publisher("~images", Image, queue_size=1, latch=True)
+      self.pub_pub = self.nepi_ros.create_publisher("~images", Image, queue_size=1, latch=True)
       time.sleep(1)
-      current_folder = rospy.get_param('~current_folder', self.init_current_folder)
+      current_folder = self.node_if.get_param('current_folder')
       # Now start publishing images
       self.file_list = []
       self.num_files = 0
@@ -368,9 +476,9 @@ class NepiFilePubVidApp(object):
           #self.msg_if.pub_warn("File Pub Count: " + str(self.num_files))
         if self.num_files > 0:
           self.current_ind = 0
-          rospy.Timer(rospy.Duration(1), self.publishCb, oneshot = True)
+          self.nepi_ros.start_timer_process(1, self.publishCb, oneshot = True)
           running = True
-          rospy.set_param('~running',True)
+          self.node_if.set_param('running',True)
         else:
           self.msg_if.pub_info("No image files found in folder " + current_folder)
       else:
@@ -379,9 +487,9 @@ class NepiFilePubVidApp(object):
 
 
   def stopPubCb(self,msg):
-    running = rospy.get_param('~running',self.init_running)
+    running = self.node_if.get_param('running')
     running = False
-    rospy.set_param('~running',False)
+    self.node_if.set_param('running',False)
     time.sleep(1)
     if self.pub_pub != None:
       self.pub_pub.unregister()
@@ -393,11 +501,11 @@ class NepiFilePubVidApp(object):
 
 
   def publishCb(self,timer):
-    running = rospy.get_param('~running',self.init_running)
-    size = rospy.get_param('~size',self.init_size)
-    encoding = rospy.get_param('~encoding',self.init_encoding)
-    set_random = rospy.get_param('~random',self.init_random)
-    overlay = rospy.get_param('~overlay',  self.init_overlay)
+    running = self.node_if.get_param('running')
+    size = self.node_if.get_param('size')
+    encoding = self.node_if.get_param('encoding')
+    set_random = self.node_if.get_param('random')
+    overlay = self.node_if.get_param('overlay')
 
     if running:
       if self.pub_pub != None:
@@ -429,12 +537,12 @@ class NepiFilePubVidApp(object):
             self.msg_if.pub_info('Frame count : ' + str(frame_count))
 
             cv2_img = None
-            while success == True and running == True and not rospy.is_shutdown():
-                running = rospy.get_param('~running',self.init_running)
-                size = rospy.get_param('~size',self.init_size)
-                encoding = rospy.get_param('~encoding',self.init_encoding)
-                set_random = rospy.get_param('~random',self.init_random)
-                overlay = rospy.get_param('~overlay',  self.init_overlay)
+            while success == True and running == True and not self.nepi_ros.wait_for_node():
+                running = self.node_if.get_param('running')
+                size = self.node_if.get_param('size')
+                encoding = self.node_if.get_param('encoding')
+                set_random = self.node_if.get_param('random')
+                overlay = self.node_if.get_param('overlay')
                 if cv2_img is None or self.paused == False or self.oneshot == True:
                   self.oneshot = False
                   # Publish video at native fps
@@ -469,13 +577,13 @@ class NepiFilePubVidApp(object):
                     if encoding != 'mono8' and img_shape[2] == 1:
                       cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_GRAY2BGR)
                     out_img_msg = nepi_img.cv2img_to_rosimg(cv2_img,encoding=encoding)
-                    if not rospy.is_shutdown():
-                      out_img_msg.header.stamp = rospy.Time.now()
-                      self.pub_pub.publish(out_img_msg) 
+                    if not self.nepi_ros.wait_for_node():
+                      out_img_msg.header.stamp = self.nepi_ros.ros_time_now()
+                      self.node_if.publish_pub('pub_pub', out_img_msg) 
 
-    running = rospy.get_param('~running',self.init_running)
+    running = self.node_if.get_param('running')
     if running == True:
-      rospy.Timer(rospy.Duration(1), self.publishCb, oneshot = True)
+      self.nepi_ros.start_timer_process(1, self.publishCb, oneshot = True)
     else:
       if self.vidcap != None:
         self.vidcap.release()
