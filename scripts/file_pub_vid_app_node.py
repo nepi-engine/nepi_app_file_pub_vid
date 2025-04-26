@@ -35,11 +35,6 @@ from nepi_sdk import nepi_utils
 from nepi_sdk import nepi_img
 
 
-from nepi_sdk import nepi_ros
-from nepi_sdk import nepi_save
-from nepi_sdk import nepi_msg
-from nepi_sdk import nepi_img 
-
 from nepi_app_file_pub_vid.msg import FilePubVidStatus
 
 from std_msgs.msg import UInt8, Int32, Float32, Empty, String, Bool, Header
@@ -49,7 +44,7 @@ from sensor_msgs.msg import Image
 
 from nepi_api.node_if import NodeClassIF
 from nepi_api.messages_if import MsgIF
-from nepi_api.sys_if_save_cfg import SaveCfgIF
+from nepi_api.system_if import SaveCfgIF
 
 
 
@@ -112,8 +107,8 @@ class NepiFilePubVidApp(object):
     self.msg_if.pub_info("Starting IF Initialization Processes")
 
     ##############################     
-    # Init Param Server
-    self.initCb(do_updates = False)
+    # Initialize Class Variables
+
 
     ##############################
     ### Setup Node
