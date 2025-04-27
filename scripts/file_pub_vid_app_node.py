@@ -45,6 +45,7 @@ from sensor_msgs.msg import Image
 from nepi_api.node_if import NodeClassIF
 from nepi_api.messages_if import MsgIF
 from nepi_api.system_if import SaveCfgIF
+from nepi_api.data_if import ImageIF
 
 
 
@@ -79,7 +80,7 @@ class NepiFilePubVidApp(object):
 
   running = False
   file_count = 0
-  pub_pub = None
+  img_pub = None
 
   oneshot = False
 
@@ -152,10 +153,10 @@ class NepiFilePubVidApp(object):
 
     # Publishers Config Dict ####################
     self.PUBS_DICT = {
-        'navpose_pub': {
+        'status_pub': {
             'namespace': self.node_namespace,
-            'topic': 'navpose',
-            'msg': NavPoseData,
+            'topic': 'status',
+            'msg': FilePubVidStatus,
             'qsize': 1,
             'latch': True
         }
@@ -265,10 +266,7 @@ class NepiFilePubVidApp(object):
 
     ready = self.node_if.wait_for_ready()
 
-
-
-    # Create class publishers
-    self.status_pub = self.nepi_ros.create_publisher("~status", FilePubVidStatus, queue_size=1, latch=True)
+    
 
 
     ##############################
@@ -368,7 +366,7 @@ class NepiFilePubVidApp(object):
       self.last_folder = current_folder
     # Start publishing if needed
     running = self.node_if.get_param('running')
-    if running and self.pub_pub == None:
+    if running and self.image_if == None:
       self.startPub()
       update_status = True
     # Publish status if needed
@@ -455,8 +453,8 @@ class NepiFilePubVidApp(object):
     self.startPub()
 
   def startPub(self):
-    if self.pub_pub == None:
-      self.pub_pub = self.nepi_ros.create_publisher("~images", Image, queue_size=1, latch=True)
+    if self.image_if == None:
+      self.image_if = ImageIF(namespace = self.node_namespace, topic = 'image')
       time.sleep(1)
       current_folder = self.node_if.get_param('current_folder')
       # Now start publishing images
@@ -486,10 +484,10 @@ class NepiFilePubVidApp(object):
     running = False
     self.node_if.set_param('running',False)
     time.sleep(1)
-    if self.pub_pub != None:
-      self.pub_pub.unregister()
+    if self.image_if != None:
+      self.image_if.unregister()
       time.sleep(1)
-      self.pub_pub = None
+      self.image_if = None
     self.current_file = "None"
     self.current_fps = "0"
     self.publish_status()
@@ -503,7 +501,7 @@ class NepiFilePubVidApp(object):
     overlay = self.node_if.get_param('overlay')
 
     if running:
-      if self.pub_pub != None:
+      if self.image_if != None:
         # Set current index
         if set_random == True and self.paused == False:
           self.current_ind = int(random.random() * self.num_files)
@@ -571,10 +569,7 @@ class NepiFilePubVidApp(object):
                       cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2GRAY)
                     if encoding != 'mono8' and img_shape[2] == 1:
                       cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_GRAY2BGR)
-                    out_img_msg = nepi_img.cv2img_to_rosimg(cv2_img,encoding=encoding)
-                    if not self.nepi_ros.wait_for_node():
-                      out_img_msg.header.stamp = self.nepi_ros.ros_time_now()
-                      self.node_if.publish_pub('pub_pub', out_img_msg) 
+                    self.image_if.publish_cv2_img(cv2_img,encoding=encoding) 
 
     running = self.node_if.get_param('running')
     if running == True:
@@ -585,10 +580,10 @@ class NepiFilePubVidApp(object):
         time.sleep(1)
         self.vidcap = None
       self.current_ind = 0
-      if self.pub_pub != None:
-        self.pub_pub.unregister()
+      if self.image_if != None:
+        self.image_if.unregister()
         time.sleep(1)
-        self.pub_pub = None
+        self.image_if = None
 
 
 
