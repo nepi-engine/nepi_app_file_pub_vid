@@ -44,6 +44,7 @@ from sensor_msgs.msg import Image
 
 from nepi_api.node_if import NodeClassIF
 from nepi_api.messages_if import MsgIF
+from nepi_api.system_if import SaveDataIF
 from nepi_api.data_if import ImageIF
 
 
@@ -83,6 +84,8 @@ class NepiFilePubVidApp(object):
 
   oneshot = False
 
+  image_if = None
+
   default_size = FACTORY_IMG_SIZE.split('x')
   width = int(default_size[1])
   height = int(default_size[0])
@@ -103,7 +106,7 @@ class NepiFilePubVidApp(object):
 
     ##############################  
     # Create Msg Class
-    self.msg_if = MsgIF(log_name = self.class_name + ": " + data_name)
+    self.msg_if = MsgIF(log_name = self.class_name)
     self.msg_if.pub_info("Starting IF Initialization Processes")
 
     ##############################     
@@ -126,21 +129,21 @@ class NepiFilePubVidApp(object):
     self.PARAMS_DICT = {
         'current_folder': {
             'namespace': self.node_namespace,
-            'factory_val': self.FACTORY_IMG_SIZE
+            'factory_val': self.HOME_FOLDER
         },
-        'size': {
-            'namespace': self.node_namespace,
-            'factory_val': self.FACTORY_IMG_ENCODING_OPTION
-        },
-        'encoding': {
-            'namespace': self.node_namespace,
-            'factory_val': self.FACTORY_ALT_FRAME
-        },
-        'random': {
+        'overlay': {
             'namespace': self.node_namespace,
             'factory_val': False
         },
-        'overaly': {
+        'size': {
+            'namespace': self.node_namespace,
+            'factory_val': self.FACTORY_IMG_SIZE
+        },
+        'encoding': {
+            'namespace': self.node_namespace,
+            'factory_val': self.FACTORY_IMG_ENCODING_OPTION
+        },
+        'random': {
             'namespace': self.node_namespace,
             'factory_val': False
         },
@@ -275,7 +278,7 @@ class NepiFilePubVidApp(object):
     ##############################
 
     # Start updater process
-    self.nepi_ros.start_timer_process(self.UPDATER_DELAY_SEC, self.updaterCb)
+    nepi_ros.start_timer_process(self.UPDATER_DELAY_SEC, self.updaterCb)
 
 
     ##############################
@@ -283,7 +286,7 @@ class NepiFilePubVidApp(object):
     self.msg_if.pub_info(" Initialization Complete")
     self.publish_status()
     # Spin forever (until object is detected)
-    self.nepi_ros.spin()
+    nepi_ros.spin()
 
 
 
@@ -468,7 +471,7 @@ class NepiFilePubVidApp(object):
           #self.msg_if.pub_warn("File Pub Count: " + str(self.num_files))
         if self.num_files > 0:
           self.current_ind = 0
-          self.nepi_ros.start_timer_process(1, self.publishCb, oneshot = True)
+          nepi_ros.start_timer_process(1, self.publishCb, oneshot = True)
           running = True
           self.node_if.set_param('running',True)
         else:
@@ -529,7 +532,7 @@ class NepiFilePubVidApp(object):
             self.msg_if.pub_info('Frame count : ' + str(frame_count))
 
             cv2_img = None
-            while success == True and running == True and not self.nepi_ros.wait_for_node():
+            while success == True and running == True and not nepi_ros.is_shutdown():
                 running = self.node_if.get_param('running')
                 size = self.node_if.get_param('size')
                 encoding = self.node_if.get_param('encoding')
@@ -572,7 +575,7 @@ class NepiFilePubVidApp(object):
 
     running = self.node_if.get_param('running')
     if running == True:
-      self.nepi_ros.start_timer_process(1, self.publishCb, oneshot = True)
+      nepi_ros.start_timer_process(1, self.publishCb, oneshot = True)
     else:
       if self.vidcap != None:
         self.vidcap.release()
