@@ -21,6 +21,7 @@ from nepi_sdk import nepi_ros
 from nepi_sdk import nepi_utils
 from nepi_sdk import nepi_img
 
+from nepi_ros_interfaces.msg import SaveDataRate, SaveDataStatus
 
 from nepi_app_file_pub_vid.msg import FilePubVidStatus
 
