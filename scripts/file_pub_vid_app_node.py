@@ -30,7 +30,7 @@ import random
 
 
 
-from nepi_sdk import nepi_ros
+from nepi_sdk import nepi_sdk
 from nepi_sdk import nepi_utils
 from nepi_sdk import nepi_img
 
@@ -97,11 +97,11 @@ class NepiFilePubVidApp(object):
   DEFAULT_NODE_NAME = "app_file_pub_vid" # Can be overwitten by luanch command
   def __init__(self):
     #### APP NODE INIT SETUP ####
-    nepi_ros.init_node(name= self.DEFAULT_NODE_NAME)
+    nepi_sdk.init_node(name= self.DEFAULT_NODE_NAME)
     self.class_name = type(self).__name__
-    self.base_namespace = nepi_ros.get_base_namespace()
-    self.node_name = nepi_ros.get_node_name()
-    self.node_namespace = nepi_ros.get_node_namespace()
+    self.base_namespace = nepi_sdk.get_base_namespace()
+    self.node_name = nepi_sdk.get_node_name()
+    self.node_namespace = nepi_sdk.get_node_namespace()
 
     ##############################  
     # Create Msg Class
@@ -276,7 +276,7 @@ class NepiFilePubVidApp(object):
     ##############################
 
     # Start updater process
-    nepi_ros.start_timer_process(self.UPDATER_DELAY_SEC, self.updaterCb)
+    nepi_sdk.start_timer_process(self.UPDATER_DELAY_SEC, self.updaterCb)
 
 
     ##############################
@@ -284,7 +284,7 @@ class NepiFilePubVidApp(object):
     self.msg_if.pub_info(" Initialization Complete")
     self.publish_status()
     # Spin forever (until object is detected)
-    nepi_ros.spin()
+    nepi_sdk.spin()
 
 
 
@@ -469,7 +469,7 @@ class NepiFilePubVidApp(object):
           #self.msg_if.pub_warn("File Pub Count: " + str(self.num_files))
         if self.num_files > 0:
           self.current_ind = 0
-          nepi_ros.start_timer_process(1, self.publishCb, oneshot = True)
+          nepi_sdk.start_timer_process(1, self.publishCb, oneshot = True)
           running = True
           self.node_if.set_param('running',True)
         else:
@@ -530,7 +530,7 @@ class NepiFilePubVidApp(object):
             self.msg_if.pub_info('Frame count : ' + str(frame_count))
 
             cv2_img = None
-            while success == True and running == True and not nepi_ros.is_shutdown():
+            while success == True and running == True and not nepi_sdk.is_shutdown():
                 running = self.node_if.get_param('running')
                 size = self.node_if.get_param('size')
                 encoding = self.node_if.get_param('encoding')
@@ -573,7 +573,7 @@ class NepiFilePubVidApp(object):
 
     running = self.node_if.get_param('running')
     if running == True:
-      nepi_ros.start_timer_process(1, self.publishCb, oneshot = True)
+      nepi_sdk.start_timer_process(1, self.publishCb, oneshot = True)
     else:
       if self.vidcap != None:
         self.vidcap.release()
