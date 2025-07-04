@@ -70,6 +70,7 @@ class NepiFilePubVidApp(object):
 
   UPDATER_DELAY_SEC = 1.0
   
+  node_if = None
   
   paused = False
   last_folder = ""
@@ -337,7 +338,8 @@ class NepiFilePubVidApp(object):
 
     status_msg.running = self.node_if.get_param('running')
 
-    self.node_if.publish_pub('status_pub', status_msg)
+    if self.node_if is not None:
+      self.node_if.publish_pub('status_pub', status_msg)
 
 
   #############################
