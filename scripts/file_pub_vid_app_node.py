@@ -96,10 +96,10 @@ class NepiFilePubVidApp(object):
   width_deg = 100
   height_deg = 70 
 
-  current_folder = self.HOME_FOLDER
+  current_folder = HOME_FOLDER
   overlay = False
-  size = self.FACTORY_IMG_SIZE
-  encoding = self.FACTORY_IMG_ENCODING_OPTION
+  size = FACTORY_IMG_SIZE
+  encoding = FACTORY_IMG_ENCODING_OPTION
   random = False
   running = False
 
@@ -336,21 +336,21 @@ class NepiFilePubVidApp(object):
     status_msg.home_folder = self.HOME_FOLDER
     if self.node_if is not None:
       current_folder = self.node_if.get_param('current_folder')
-    status_msg.current_folder = current_folder
-    if current_folder == self.HOME_FOLDER:
-      selected_folder = 'Home'
-    else:
-      selected_folder = os.path.basename(current_folder)
-    status_msg.selected_folder = selected_folder
-    status_msg.current_folders = self.current_folders
-    status_msg.supported_file_types = self.SUPPORTED_FILE_TYPES
-    status_msg.file_count = self.file_count
-    status_msg.current_file =  self.current_file
-    status_msg.current_fps = self.current_fps
+      status_msg.current_folder = current_folder
+      if current_folder == self.HOME_FOLDER:
+        selected_folder = 'Home'
+      else:
+        selected_folder = os.path.basename(current_folder)
+        status_msg.selected_folder = selected_folder
+        status_msg.current_folders = self.current_folders
+        status_msg.supported_file_types = self.SUPPORTED_FILE_TYPES
+        status_msg.file_count = self.file_count
+        status_msg.current_file =  self.current_file
+        status_msg.current_fps = self.current_fps
 
-    status_msg.paused = self.paused
+        status_msg.paused = self.paused
 
-    status_msg.size_options_list = self.STANDARD_IMAGE_SIZES
+        status_msg.size_options_list = self.STANDARD_IMAGE_SIZES
     if self.node_if is not None:
       status_msg.set_size = self.node_if.get_param('size')
       status_msg.encoding_options_list = self.IMG_PUB_ENCODING_OPTIONS
