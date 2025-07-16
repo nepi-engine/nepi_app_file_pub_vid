@@ -334,31 +334,31 @@ class NepiFilePubVidApp(object):
     status_msg = FilePubVidStatus()
 
     status_msg.home_folder = self.HOME_FOLDER
-    if self.node_if is not None:
-      current_folder = self.node_if.get_param('current_folder')
-      status_msg.current_folder = current_folder
-      if current_folder == self.HOME_FOLDER:
-        selected_folder = 'Home'
-      else:
-        selected_folder = os.path.basename(current_folder)
-        status_msg.selected_folder = selected_folder
-        status_msg.current_folders = self.current_folders
-        status_msg.supported_file_types = self.SUPPORTED_FILE_TYPES
-        status_msg.file_count = self.file_count
-        status_msg.current_file =  self.current_file
-        status_msg.current_fps = self.current_fps
+    
+    current_folder = self.current_folder
+    status_msg.current_folder = current_folder
+    if current_folder == self.HOME_FOLDER:
+      selected_folder = 'Home'
+    else:
+      selected_folder = os.path.basename(current_folder)
+      status_msg.selected_folder = selected_folder
+      status_msg.current_folders = self.current_folders
+      status_msg.supported_file_types = self.SUPPORTED_FILE_TYPES
+      status_msg.file_count = self.file_count
+      status_msg.current_file =  self.current_file
+      status_msg.current_fps = self.current_fps
 
-        status_msg.paused = self.paused
+      status_msg.paused = self.paused
 
-        status_msg.size_options_list = self.STANDARD_IMAGE_SIZES
-    if self.node_if is not None:
-      status_msg.set_size = self.node_if.get_param('size')
-      status_msg.encoding_options_list = self.IMG_PUB_ENCODING_OPTIONS
-      status_msg.set_encoding = self.node_if.get_param('encoding')
-      status_msg.set_random = self.node_if.get_param('random')
-      status_msg.set_overlay = self.node_if.get_param('overlay')
+      status_msg.size_options_list = self.STANDARD_IMAGE_SIZES
+    
+    status_msg.set_size = self.size
+    status_msg.encoding_options_list = self.IMG_PUB_ENCODING_OPTIONS
+    status_msg.set_encoding = self.encoding
+    status_msg.set_random = self.random
+    status_msg.set_overlay = self.overlay
 
-      status_msg.running = self.node_if.get_param('running')
+    status_msg.running = self.running
 
     if self.node_if is not None:
       self.node_if.publish_pub('status_pub', status_msg)
@@ -370,8 +370,7 @@ class NepiFilePubVidApp(object):
   def updaterCb(self,timer):
     update_status = False
     # Get settings from param server
-    if self.node_if is not None:
-      current_folder = self.node_if.get_param('current_folder')
+    current_folder = self.current_folder
     #self.msg_if.pub_warn("Current Folder: " + str(current_folder))
     #self.msg_if.pub_warn("Last Folder: " + str(self.last_folder))
     # Update folder info
@@ -393,8 +392,7 @@ class NepiFilePubVidApp(object):
         self.file_count =  num_files
       self.last_folder = current_folder
     # Start publishing if needed
-    if self.node_if is not None:
-      running = self.node_if.get_param('running')
+    running = self.running
     if running and self.image_if == None:
       self.startPub()
       update_status = True
@@ -403,8 +401,7 @@ class NepiFilePubVidApp(object):
       self.publish_status()
 
   def selectFolderCb(self,msg):
-    if self.node_if is not None:
-      current_folder = self.node_if.get_param('current_folder')
+    current_folder = self.current_folder
     new_folder = msg.data
     new_path = os.path.join(current_folder,new_folder)
     if os.path.exists(new_path):
@@ -423,8 +420,7 @@ class NepiFilePubVidApp(object):
       self.node_if.set_param('current_folder',self.HOME_FOLDER)
 
   def backFolderCb(self,msg):
-    if self.node_if is not None:
-      current_folder = self.node_if.get_param('current_folder')
+    current_folder = self.current_folder
     if current_folder != self.HOME_FOLDER:
       new_folder = os.path.dirname(current_folder )
       if os.path.exists(new_folder):
@@ -514,8 +510,7 @@ class NepiFilePubVidApp(object):
                   msg_if = self.msg_if
                   )
       time.sleep(1)
-      if self.node_if is not None:
-        current_folder = self.node_if.get_param('current_folder')
+      current_folder = self.current_folder
       # Now start publishing images
       self.file_list = []
       self.num_files = 0
@@ -542,8 +537,7 @@ class NepiFilePubVidApp(object):
 
 
   def stopPubCb(self,msg):
-    if self.node_if is not None:
-      running = self.node_if.get_param('running')
+    running = self.running
     running = False
     self.running = False
     self.publish_status()
@@ -560,12 +554,11 @@ class NepiFilePubVidApp(object):
 
 
   def publishCb(self,timer):
-    if self.node_if is not None:
-      running = self.node_if.get_param('running')
-      size = self.node_if.get_param('size')
-      encoding = self.node_if.get_param('encoding')
-      set_random = self.node_if.get_param('random')
-      overlay = self.node_if.get_param('overlay')
+    running = self.running
+    size = self.size
+    encoding = self.encoding
+    set_random = self.random
+    overlay = self.overlay
 
     if running:
       if self.image_if != None:
@@ -598,12 +591,11 @@ class NepiFilePubVidApp(object):
 
             cv2_img = None
             while success == True and running == True and not nepi_sdk.is_shutdown():
-                if self.node_if is not None:
-                  running = self.node_if.get_param('running')
-                  size = self.node_if.get_param('size')
-                  encoding = self.node_if.get_param('encoding')
-                  set_random = self.node_if.get_param('random')
-                  overlay = self.node_if.get_param('overlay')
+                running = self.running
+                size = self.size
+                encoding = self.encoding
+                set_random = self.random
+                overlay = self.overlay
                 if cv2_img is None or self.paused == False or self.oneshot == True:
                   self.oneshot = False
                   # Publish video at native fps
@@ -644,8 +636,7 @@ class NepiFilePubVidApp(object):
                                                     height_deg = self.height_deg,
                                                     device_mount_description = 'unknown')
 
-    if self.node_if is not None:
-      running = self.node_if.get_param('running')
+    running = self.running
     if running == True:
       nepi_sdk.start_timer_process(1, self.publishCb, oneshot = True)
     else:
