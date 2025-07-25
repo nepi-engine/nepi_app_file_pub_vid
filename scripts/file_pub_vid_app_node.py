@@ -275,10 +275,17 @@ class NepiFilePubVidApp(object):
                     subs_dict = self.SUBS_DICT
     )
 
-    ready = self.node_if.wait_for_ready()
 
-    
-
+    image_ns = self.node_namespace
+    data_product = 'color_image'
+    self.image_if = ColorImageIF(namespace = image_ns, 
+                data_product_name = data_product, 
+                data_source_description = 'file',
+                data_ref_description = 'source',
+                perspective = 'pov',
+                log_name = data_product,
+                msg_if = self.msg_if
+                )
 
     ##############################
     self.initCb(do_updates = True)
@@ -314,7 +321,8 @@ class NepiFilePubVidApp(object):
       self.running = self.node_if.get_param('running')
 
     if do_updates == True:
-      pass
+      if self.node_if is not None and self.running == True:
+        self.startPub()
     self.publish_status()
 
   def resetCb(self,do_updates = True):
@@ -504,19 +512,9 @@ class NepiFilePubVidApp(object):
   def startPubCb(self,msg):
     self.startPub()
 
+
   def startPub(self):
     if self.image_if == None:
-      image_ns = self.node_namespace
-      data_product = 'color_image'
-      self.image_if = ColorImageIF(namespace = image_ns, 
-                  data_product_name = data_product, 
-                  data_source_description = 'file',
-                  data_ref_description = 'source',
-                  perspective = 'pov',
-                  log_name = data_product,
-                  msg_if = self.msg_if
-                  )
-      time.sleep(1)
       current_folder = self.current_folder
       # Now start publishing images
       self.file_list = []
@@ -531,7 +529,6 @@ class NepiFilePubVidApp(object):
         if self.num_files > 0:
           self.current_ind = 0
           nepi_sdk.start_timer_process(1, self.publishCb, oneshot = True)
-          running = True
           self.running = True
           self.publish_status()
           if self.node_if is not None:
@@ -550,11 +547,6 @@ class NepiFilePubVidApp(object):
     self.publish_status()
     if self.node_if is not None:
       self.node_if.set_param('running',False)
-    time.sleep(1)
-    if self.image_if != None:
-      self.image_if.unregister()
-      time.sleep(1)
-      self.image_if = None
     self.current_file = "None"
     self.current_fps = "0"
     self.publish_status()
@@ -642,20 +634,9 @@ class NepiFilePubVidApp(object):
                                                     width_deg = self.width_deg,
                                                     height_deg = self.height_deg,
                                                     device_mount_description = 'unknown')
+                                                    
+    nepi_sdk.start_timer_process(1, self.publishCb, oneshot = True)
 
-    running = self.running
-    if running == True:
-      nepi_sdk.start_timer_process(1, self.publishCb, oneshot = True)
-    else:
-      if self.vidcap != None:
-        self.vidcap.release()
-        time.sleep(1)
-        self.vidcap = None
-      self.current_ind = 0
-      if self.image_if != None:
-        self.image_if.unregister()
-        time.sleep(1)
-        self.image_if = None
 
 
 
