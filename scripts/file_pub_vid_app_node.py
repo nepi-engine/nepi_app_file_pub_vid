@@ -313,7 +313,10 @@ class NepiFilePubVidApp(object):
   def initCb(self,do_updates = False):
     if self.node_if is not None:
 
-      self.current_folder = self.node_if.get_param('current_folder')
+      current_folder = self.node_if.get_param('current_folder')
+      if os.path.exists(current_folder) == False:
+        current_folder = self.HOME_FOLDER
+      self.current_folder = current_folder
       self.size = self.node_if.get_param('size')
       self.encoding = self.node_if.get_param('encoding')
       self.random = self.node_if.get_param('random')
@@ -390,6 +393,7 @@ class NepiFilePubVidApp(object):
     #self.msg_if.pub_warn("Last Folder: " + str(self.last_folder))
     # Update folder info
     if current_folder != self.last_folder:
+      self.stopPub()
       update_status = True
       if os.path.exists(current_folder):
         #self.msg_if.pub_warn("Current Folder Exists")
@@ -541,6 +545,9 @@ class NepiFilePubVidApp(object):
 
 
   def stopPubCb(self,msg):
+    self.stopPub()
+
+  def stopPub(self):
     running = self.running
     running = False
     self.running = False
@@ -633,8 +640,9 @@ class NepiFilePubVidApp(object):
                                                     frame_3d = frame_3d,
                                                     width_deg = self.width_deg,
                                                     height_deg = self.height_deg,
-                                                    device_mount_description = 'unknown')
-                                                    
+                                                    device_mount_description = 'unknown',
+                                                    pub_twice = self.paused)
+                                                        
     nepi_sdk.start_timer_process(1, self.publishCb, oneshot = True)
 
 

@@ -30,6 +30,7 @@ import BooleanIndicator from "./BooleanIndicator"
 
 
 import ImageViewer from "./Nepi_IF_ImageViewer"
+import NepiIFConfig from "./Nepi_IF_Config"
 
 import { onDropdownSelectedSendStr, createMenuListFromStrList} from "./Utilities"
 
@@ -212,6 +213,39 @@ class FilePubVidApp extends Component {
             </div>
 
 
+
+            <div style={{ borderTop: "1px solid #ffffff", marginTop: Styles.vars.spacing.medium, marginBottom: Styles.vars.spacing.xs }}/>
+
+            <Columns>
+                  <Column>
+
+
+                      <Label title="Pause">
+                            <Toggle
+                            checked={this.state.paused===true}
+                            onClick={() => sendBoolMsg(appNamespace + "/pause_pub",!this.state.paused)}>
+                            </Toggle>
+                      </Label>
+
+                </Column>
+                  <Column>
+
+
+                      <div hidden={this.state.paused === false}>
+                                <ButtonMenu>
+                                  <Button onClick={() => this.props.ros.sendTriggerMsg(appNamespace + "/step_backward")}>{"Back"}</Button>
+                                </ButtonMenu>
+
+                        </div>
+
+                
+            </Column>
+            </Columns>
+
+
+            <div style={{ borderTop: "1px solid #ffffff", marginTop: Styles.vars.spacing.medium, marginBottom: Styles.vars.spacing.xs }}/>
+
+
             <Label title={"Image Count"}>
             <Input disabled value={this.state.file_count} />
             </Label>
@@ -255,34 +289,6 @@ class FilePubVidApp extends Component {
             </Select>
             </Label>
 
-            <Label title="Set Random Order">
-              <Toggle
-              checked={this.state.set_random===true}
-              onClick={() => sendBoolMsg(appNamespace + "/set_random",!this.state.set_random)}>
-              </Toggle>
-        </Label>
-
-        <Label title="Set Overlay">
-              <Toggle
-              checked={this.state.set_overlay===true}
-              onClick={() => sendBoolMsg(appNamespace + "/set_overlay",!this.state.set_overlay)}>
-              </Toggle>
-        </Label>
-
-        <Label title="Pause">
-              <Toggle
-              checked={this.state.paused===true}
-              onClick={() => sendBoolMsg(appNamespace + "/pause_pub",!this.state.paused)}>
-              </Toggle>
-        </Label>
-
-        <div hidden={this.state.paused === false}>
-
-            <ButtonMenu>
-              <Button onClick={() => this.props.ros.sendTriggerMsg(appNamespace + "/step_forward")}>{"Forward"}</Button>
-            </ButtonMenu>
-
-            </div>
 
         </div>
 
@@ -402,29 +408,10 @@ class FilePubVidApp extends Component {
 
         <div hidden={!this.state.connected}>
 
-        <Columns>
-        <Column>
-
-          <ButtonMenu>
-          <Button onClick={() => sendTriggerMsg( appNamespace + "/reset_app")}>{"Reset App"}</Button>
-          </ButtonMenu>
-
-        </Column>
-        <Column>
-
-          <ButtonMenu>
-          <Button onClick={() => sendTriggerMsg(appNamespace + "/reset_config")}>{"Reset Config"}</Button>
-          </ButtonMenu>
-
-        </Column>
-        <Column>
-
-          <ButtonMenu>
-          <Button onClick={() => sendTriggerMsg(appNamespace + "/save_config")}>{"Save Config"}</Button>
-          </ButtonMenu>
-
-        </Column>
-        </Columns>
+        <NepiIFConfig
+                        namespace={appNamespace}
+                        title={"Nepi_IF_Conig"}
+        />
       
        </div>
 
